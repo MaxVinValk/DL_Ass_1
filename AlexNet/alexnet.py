@@ -40,7 +40,7 @@ model = tf.keras.models.Sequential([
 BATCH_SIZE = 32             # Can be of size 2^n, but not restricted to. for the better utilization of memory
 IMG_HEIGHT = 227            # input Shape required by the model
 IMG_WIDTH = 227             # input Shape required by the model
-STEPS_PER_EPOCH = np.ceil(image_count/BATCH_SIZE)
+STEPS_PER_EPOCH = np.floor((image_count * 0.8)/BATCH_SIZE)
 
 # Rescalingthe pixel values from 0~255 to 0~1 For RGB Channels of the image.
 image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255, validation_split=0.2)
@@ -95,3 +95,4 @@ history = model.fit(
 
 # Saving the model
 model.save('AlexNet_saved_model/')
+
