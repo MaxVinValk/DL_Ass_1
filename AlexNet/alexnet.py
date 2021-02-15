@@ -5,14 +5,10 @@ import datetime
 
 # Raw Dataset Directory
 data_dir = pathlib.Path("./train")
+
 image_count = len(list(data_dir.glob('*/*.png')))
-print(image_count)
-# classnames in the dataset specified
 CLASS_NAMES = np.array([item.name for item in data_dir.glob('*')])
-print(CLASS_NAMES)
-# print length of class names
 output_class_units = len(CLASS_NAMES)
-print(output_class_units)
 
 model = tf.keras.models.Sequential([
     tf.keras.layers.Conv2D(filters=96, kernel_size=(11,11), strides=(4,4), activation='relu', input_shape=(227,227,3)),
@@ -37,15 +33,14 @@ model = tf.keras.models.Sequential([
 ])
 
 # Shape of inputs to NN Model
-BATCH_SIZE = 32             # Can be of size 2^n, but not restricted to. for the better utilization of memory
-IMG_HEIGHT = 227            # input Shape required by the model
-IMG_WIDTH = 227             # input Shape required by the model
-STEPS_PER_EPOCH = np.floor((image_count * 0.8)/BATCH_SIZE)
+BATCH_SIZE = 32
+IMG_HEIGHT = 227
+IMG_WIDTH = 227
 
-# Rescalingthe pixel values from 0~255 to 0~1 For RGB Channels of the image.
-image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255, validation_split=0.2)
+VAL_SPLIT = 0.2
 
-# training_data for model training
+image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255, validation_split=VAL_SPLIT)
+
 train_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
                                                      batch_size=BATCH_SIZE,
                                                      shuffle=True,
@@ -61,39 +56,25 @@ val_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
                                                      subset = 'validation')
 
 
-
-
-# Specifying the optimizer, Loss function for optimization & Metrics to be displayed
 model.compile(optimizer='sgd', loss="categorical_crossentropy", metrics=['accuracy'])
-
-# Summarizing the model architecture and printing it out
 model.summary()
 
-# callbacks at training
-#class myCallback(tf.keras.callbacks.Callback):
-#    def on_epoch_end(self,epoch,logs={}):
-#        if (logs.get("accuracy")==1.00 and logs.get("loss")<0.03):
-#            print("\nReached 100% accuracy so stopping training")
-#            self.model.stop_training =True
-#callbacks = myCallback()
-
-es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+es = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=1, min_delta=0.01)
 
 
 # TensorBoard.dev Visuals
 log_dir="logs_sgd_\\fit\\" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-# Training the Model
+# Training the model
 history = model.fit(
       train_data_gen,
-      steps_per_epoch=STEPS_PER_EPOCH,
-      epochs=50,
-      callbacks=[tensorboard_callback, es],
-      validation_data= val_data_gen,
-      validation_steps = val_data_gen.samples,
+      steps_per_epoch = np.floor(train_data_gen.samples / BATCH_SIZE),
+      epochs = 50,
+      callbacks = [tensorboard_callback, es],
+      validation_data = val_data_gen,
+      validation_steps = np.floor(val_data_gen.samples / BATCH_SIZE),
       validation_freq = 1)
 
-# Saving the model
-model.save('AlexNet_saved_model/')
 
+model.save('AlexNet_saved_model/')
