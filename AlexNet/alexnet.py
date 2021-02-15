@@ -91,7 +91,8 @@ history = model.fit(
       epochs=50,
       callbacks=[tensorboard_callback, es],
       validation_data= val_data_gen,
-      validation_steps = val_data_gen.samples)
+      validation_steps = val_data_gen.samples,
+      validation_freq = 1)
 
 # Saving the model
 model.save('AlexNet_saved_model/')
