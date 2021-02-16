@@ -2,9 +2,32 @@ import tensorflow as tf
 import numpy as np
 import pathlib
 import datetime
+import os
+import sys
+
+# Setting the seeds:
+tf.random.set_seed(1)
+np.random.seed(1)
+
+
+DATA_PATH = "./train"
+METHOD = "adam"
+
+for i in range(1, len(sys.argv)):
+    if (sys.argv[i] == "--folder"):
+        DATA_PATH = str(sys.argv[i+1])
+    elif (sys.argv[i] == "--method"):
+        METHOD = str(sys.argv[i+1])
+
+print(f"DATA_PATH: {DATA_PATH}")
+print(f"METHOD: {METHOD}")
+
+
+
+
 
 # Raw Dataset Directory
-data_dir = pathlib.Path("./train")
+data_dir = pathlib.Path(DATA_PATH)
 
 image_count = len(list(data_dir.glob('*/*.png')))
 CLASS_NAMES = np.array([item.name for item in data_dir.glob('*')])
@@ -56,14 +79,14 @@ val_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
                                                      subset = 'validation')
 
 
-model.compile(optimizer='sgd', loss="categorical_crossentropy", metrics=['accuracy'])
+model.compile(optimizer=METHOD, loss="categorical_crossentropy", metrics=['accuracy'])
 model.summary()
 
-es = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=1, min_delta=0.01)
+#es = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=1, min_delta=0.01)
 
 
 # TensorBoard.dev Visuals
-log_dir="logs_sgd_\\fit\\" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir=f"logs_{METHOD}_\\fit\\" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 # Training the model
@@ -71,10 +94,12 @@ history = model.fit(
       train_data_gen,
       steps_per_epoch = np.floor(train_data_gen.samples / BATCH_SIZE),
       epochs = 50,
-      callbacks = [tensorboard_callback, es],
+      callbacks = [tensorboard_callback],
       validation_data = val_data_gen,
       validation_steps = np.floor(val_data_gen.samples / BATCH_SIZE),
-      validation_freq = 1)
+      validation_freq = 1,
+      workers = 8,
+      use_multiprocessing = True)
 
 
-model.save('AlexNet_saved_model/')
+model.save(f'{METHOD}_AlexNet_saved_model/')
