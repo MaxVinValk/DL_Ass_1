@@ -9,15 +9,19 @@ import sys
 tf.random.set_seed(1)
 np.random.seed(1)
 
+VALIDATION_SEED = 0
 
 DATA_PATH = "./train"
 METHOD = "adam"
+EPOCHS = 20
 
 for i in range(1, len(sys.argv)):
     if (sys.argv[i] == "--folder"):
         DATA_PATH = str(sys.argv[i+1])
     elif (sys.argv[i] == "--method"):
         METHOD = str(sys.argv[i+1])
+    elif (sys.argv[i] == "--epochs"):
+        EPOCHS = int(sys.argv[i+1])
 
 print(f"DATA_PATH: {DATA_PATH}")
 print(f"METHOD: {METHOD}")
@@ -34,7 +38,7 @@ CLASS_NAMES = np.array([item.name for item in data_dir.glob('*')])
 output_class_units = len(CLASS_NAMES)
 
 model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(filters=96, kernel_size=(11,11), strides=(4,4), activation='relu', input_shape=(227,227,3)),
+    tf.keras.layers.Conv2D(filters=96, kernel_size=(11,11), strides=(4,4), activation='relu', input_shape=(227,227,1)),
     tf.keras.layers.BatchNormalization(),
     tf.keras.layers.MaxPool2D(pool_size=(3,3), strides=(2,2)),
     tf.keras.layers.Conv2D(filters=256, kernel_size=(5,5), strides=(1,1), activation='relu', padding="same"),
@@ -67,17 +71,20 @@ image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255
 train_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
                                                      batch_size=BATCH_SIZE,
                                                      shuffle=True,
-                                                     target_size=(IMG_HEIGHT, IMG_WIDTH), #Resizing the raw dataset
+                                                     target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                     color_mode='grayscale',
+                                                      #Resizing the raw dataset
                                                      classes = list(CLASS_NAMES),
                                                      subset = 'training')
 
 val_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
                                                      batch_size=BATCH_SIZE,
                                                      shuffle=True,
-                                                     target_size=(IMG_HEIGHT, IMG_WIDTH), #Resizing the raw dataset
+                                                     target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                     color_mode='grayscale',
+                                                      #Resizing the raw dataset
                                                      classes = list(CLASS_NAMES),
                                                      subset = 'validation')
-
 
 model.compile(optimizer=METHOD, loss="categorical_crossentropy", metrics=['accuracy'])
 model.summary()
@@ -86,20 +93,22 @@ model.summary()
 
 
 # TensorBoard.dev Visuals
-log_dir=f"logs_{METHOD}_\\fit\\" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir=f"Alex/{METHOD}/logs_{METHOD}_\\fit\\" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
+#callback_weights = tf.keras.callbacks.ModelCheckpoint(f"./{METHOD}/checkpoint" + "_{epoch}", verbose=1, save_weights_only=False, save_freq='epoch')
+
+es = tf.keras.callbacks.EarlyStopping(monitor = 'val_loss', patience=10, restore_best_weights=True)
 
 # Training the model
 history = model.fit(
       train_data_gen,
       steps_per_epoch = np.floor(train_data_gen.samples / BATCH_SIZE),
-      epochs = 50,
-      callbacks = [tensorboard_callback],
+      epochs = EPOCHS,
+      callbacks = [tensorboard_callback, es],
       validation_data = val_data_gen,
       validation_steps = np.floor(val_data_gen.samples / BATCH_SIZE),
-      validation_freq = 1,
-      workers = 8,
-      use_multiprocessing = True)
+      validation_freq = 1)
 
 
-model.save(f'{METHOD}_AlexNet_saved_model/')
+model.save(f'Alex/{METHOD}/AlexNet_saved_model/')
