@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 
-#Expects the data dictionary as input
 #
+# Input:
+#       Data: data dictionary
+#       Algorithm: Algorithm to plot from Data dictionary
+#       plotWhat: "epoch_loss" or "epoch_accuracy"
+#       saveToFile: If false, then shows a plot. Otherwise dumps plot to a file
 #
 def plotAlg(data, algorithm, plotWhat, saveToFile=False):
 
