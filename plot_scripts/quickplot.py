@@ -34,6 +34,8 @@ def plotAlg(data, algorithm, plotWhat, saveToFile=False):
     plt.xlabel("Epochs")
     plt.ylabel(plotWhat[6:].capitalize())
 
+    plt.ylim([0, 1])
+
 
     if (saveToFile):
         plt.savefig(f"plt_{algorithm}_{plotWhat[6:]}.png")
