@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 #
 def plotAlg(data, algorithm, plotWhat, saveToFile=False):
 
+    plt.clf()
+
     if algorithm not in data["alex"].keys():
         print(f"No data found for an algorithm by the name of: {algorithm}")
         return
